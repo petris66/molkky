@@ -446,22 +446,26 @@ function extractPointsFromInput(raw) {
 
 function addScoreFromCommand() {
   const input = $("commandInput");
-  const raw = input.value;
+  const raw = (input.value || "").trim();
+
+  setDebug("READ INPUT: " + JSON.stringify(raw));
+
+  if (!raw) {
+    setStatus("❌ Syöte puuttuu");
+    prefillCurrentPlayer();
+    return;
+  }
+
   input.value = "";
 
   const active = currentActivePlayer();
   const extracted = extractPointsFromInput(raw);
 
   setDebug(
-    "RAW: " + JSON.stringify(raw) + "\\n" +
-    "ACTIVE: " + (active ? active.name + " / " + active.score : "null") + "\\n" +
+    "RAW: " + JSON.stringify(raw) + "\n" +
+    "ACTIVE: " + (active ? active.name + " / " + active.score : "null") + "\n" +
     "PARSED: " + JSON.stringify(extracted)
   );
-
-  if (!extracted.ok && extracted.reason === "empty") {
-    prefillCurrentPlayer();
-    return;
-  }
 
   if (extracted.ok && extracted.type === "undo") {
     return undo();
@@ -473,12 +477,13 @@ function addScoreFromCommand() {
   }
 
   if (!extracted.ok || extracted.type !== "score") {
-    setStatus("❌ En ymmärtänyt tulosta: " + raw + ". Sano esim. 2, kaksi tai huti.");
+    setStatus("❌ En ymmärtänyt tulosta: " + raw);
     prefillCurrentPlayer();
     return;
   }
 
   const points = extracted.points;
+
   if (!Number.isInteger(points) || points < 0 || points > 12) {
     setStatus("Pisteiden pitää olla 0–12. Syötit: " + points);
     prefillCurrentPlayer();
@@ -486,9 +491,9 @@ function addScoreFromCommand() {
   }
 
   setDebug(
-    "RAW: " + JSON.stringify(raw) + "\\n" +
-    "ACTIVE: " + active.name + " / " + active.score + "\\n" +
-    "PARSED: " + JSON.stringify(extracted) + "\\n" +
+    "RAW: " + JSON.stringify(raw) + "\n" +
+    "ACTIVE: " + active.name + " / " + active.score + "\n" +
+    "PARSED: " + JSON.stringify(extracted) + "\n" +
     "CALL: applyScore(" + JSON.stringify(active.name) + ", " + points + ")"
   );
 
