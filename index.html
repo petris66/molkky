@@ -26,7 +26,7 @@
 <body>
 <div class="wrap">
   <header><h1>Mölkky</h1><div class="badge" id="roundBadge">Tulostaulu</div></header>
-  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 22 · active-turn-only</div>
+  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 23 · debug</div>
 
   <section class="card hidden" id="viewerCard">
     <label>Live-tulostaulu</label>
@@ -74,6 +74,7 @@
       <button class="secondary quick" data-points="5">+5</button>
     </div>
     <div class="status" id="status">Valmis.</div>
+    <div class="status" id="debugBox" style="font-size:13px; font-weight:700; white-space:pre-wrap; align-items:flex-start;">Debug odottaa kirjausta.</div>
     <div class="smallrow"><span id="turnText"></span><span>Täsmälleen tavoite voittaa</span></div>
   </section>
 
@@ -147,6 +148,10 @@ function setStatus(text) {
   if ($("status")) $("status").textContent = text;
   if ($("setupStatus")) $("setupStatus").textContent = text;
   if ($("viewerStatus")) $("viewerStatus").textContent = text;
+}
+
+function setDebug(text) {
+  if ($("debugBox")) $("debugBox").textContent = text;
 }
 function showSetup() {
   $("viewerCard").classList.add("hidden");
@@ -377,7 +382,8 @@ function parseCommand(raw) {
 
 
 function extractPointsFromInput(raw) {
-  const cleaned = (raw || "")
+  const original = raw || "";
+  const cleaned = original
     .trim()
     .toLowerCase()
     .replace(",", ".")
@@ -389,50 +395,37 @@ function extractPointsFromInput(raw) {
     .replace(/\+/g, " ")
     .replace(/\s+/g, " ");
 
-  if (!cleaned) return { ok: false, reason: "empty" };
+  if (!cleaned) return { ok: false, reason: "empty", cleaned };
 
-  if (/(^|\s)(undo|andu|ändu|peru|takaisin|takasin)(\s|$)/i.test(cleaned)) {
-    return { ok: true, type: "undo" };
+  if (["undo", "andu", "ändu", "peru", "takaisin", "takasin"].includes(cleaned)) {
+    return { ok: true, type: "undo", cleaned };
   }
 
-  if (/(^|\s)(huti|ohi)(\s|$)/i.test(cleaned)) {
-    return { ok: true, type: "score", points: 0 };
+  if (cleaned.includes("huti") || cleaned.includes("ohi")) {
+    return { ok: true, type: "score", points: 0, cleaned, method: "miss" };
   }
 
+  // Etsi mikä tahansa 1–2 numeron luku koko syötteestä, esim. "jari 2".
   const numberMatch = cleaned.match(/(\d{1,2})/);
   if (numberMatch) {
-    return { ok: true, type: "score", points: Number(numberMatch[1]) };
+    return { ok: true, type: "score", points: Number(numberMatch[1]), cleaned, method: "digit" };
   }
 
+  const normalized = normalizeName(cleaned);
   const words = [
-    ["kaksitoista", 12],
-    ["yksitoista", 11],
-    ["kymmenen", 10],
-    ["yhdeksän", 9],
-    ["yhdeksan", 9],
-    ["kahdeksan", 8],
-    ["seitsemän", 7],
-    ["seitseman", 7],
-    ["kuusi", 6],
-    ["viisi", 5],
-    ["neljä", 4],
-    ["nelja", 4],
-    ["kolme", 3],
-    ["kaksi", 2],
-    ["yksi", 1],
-    ["nolla", 0]
+    ["kaksitoista", 12], ["yksitoista", 11], ["kymmenen", 10],
+    ["yhdeksan", 9], ["kahdeksan", 8], ["seitseman", 7],
+    ["kuusi", 6], ["viisi", 5], ["nelja", 4], ["kolme", 3],
+    ["kaksi", 2], ["yksi", 1], ["nolla", 0]
   ];
 
-  const normalized = normalizeName(cleaned);
   for (const [word, value] of words) {
-    const wordKey = normalizeName(word);
-    const pattern = new RegExp("(^|\\s)" + wordKey + "(\\s|$)", "i");
-    if (pattern.test(normalized)) {
-      return { ok: true, type: "score", points: value };
+    if (normalized.includes(word)) {
+      return { ok: true, type: "score", points: value, cleaned, normalized, method: "word:" + word };
     }
   }
 
-  return { ok: false, reason: cleaned };
+  return { ok: false, reason: cleaned, cleaned, normalized };
 }
 
 function addScoreFromCommand() {
@@ -440,7 +433,14 @@ function addScoreFromCommand() {
   const raw = input.value;
   input.value = "";
 
+  const active = currentActivePlayer();
   const extracted = extractPointsFromInput(raw);
+
+  setDebug(
+    "RAW: " + JSON.stringify(raw) + "\\n" +
+    "ACTIVE: " + (active ? active.name + " / " + active.score : "null") + "\\n" +
+    "PARSED: " + JSON.stringify(extracted)
+  );
 
   if (!extracted.ok && extracted.reason === "empty") {
     prefillCurrentPlayer();
@@ -451,13 +451,11 @@ function addScoreFromCommand() {
     return undo();
   }
 
-  const active = currentActivePlayer();
   if (!active) {
     setStatus("Peli päättynyt tai aktiivista pelaajaa ei löytynyt.");
     return;
   }
-console.log("INPUT:", raw);
-console.log("PARSED:", extracted);
+
   if (!extracted.ok || extracted.type !== "score") {
     setStatus("❌ En ymmärtänyt tulosta: " + raw + ". Sano esim. 2, kaksi tai huti.");
     prefillCurrentPlayer();
@@ -471,11 +469,18 @@ console.log("PARSED:", extracted);
     return;
   }
 
-  // Tärkeä muutos: käytetään aina vuorossa olevaa pelaajaa, ei tekstistä pääteltyä nimeä.
+  setDebug(
+    "RAW: " + JSON.stringify(raw) + "\\n" +
+    "ACTIVE: " + active.name + " / " + active.score + "\\n" +
+    "PARSED: " + JSON.stringify(extracted) + "\\n" +
+    "CALL: applyScore(" + JSON.stringify(active.name) + ", " + points + ")"
+  );
+
   applyScore(active.name, points);
 }
 
 function applyScore(playerName, points) {
+  setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY START: " + playerName + " +" + points);
   const player = findPlayer(playerName);
   if (!player) return setStatus("❌ Pelaajaa ei löytynyt.");
   if (player.out) { setStatus(player.name + " on jo ulkona."); prefillCurrentPlayer(); return; }
