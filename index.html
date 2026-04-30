@@ -514,6 +514,10 @@
     function addScoreFromCommand() {
       const input = $("commandInput");
       const command = parseCommand(input.value);
+      if (command.type === "unknown") {
+  setStatus("❌ En ymmärtänyt komentoa: " + input.value);
+  return;
+}
       input.value = "";
 
       if (command.type === "empty") return;
@@ -521,7 +525,7 @@
       if (command.type === "reset") return resetGame();
 
       if (command.type !== "score") {
-        setStatus('En ymmärtänyt. Kokeile: "Niina 10" tai "Niina huti".');
+        setStatus("❌ En ymmärtänyt komentoa: " + input);
         return;
       }
 
