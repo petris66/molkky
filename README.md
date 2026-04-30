@@ -99,3 +99,7 @@ Korjattu vuorossa olevan pelaajan esitäyttö ja yliheiton näkyminen.
 ## Render-prefill fix
 
 Kirjauskenttä täytetään nyt renderöinnin lopussa aina vuorossa olevan pelaajan nimellä kirjaajanäkymässä.
+
+## Active player fallback
+
+Jos kirjauskentässä on pelkkä tulos, kuten 2, kaksi tai huti, se kohdistetaan aina vuorossa olevalle pelaajalle.

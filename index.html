@@ -788,9 +788,45 @@
       return { type: "unknown", raw: cleaned };
     }
 
+    function inputLooksLikeOnlyPoints(text) {
+      const cleaned = (text || "")
+        .trim()
+        .toLowerCase()
+        .replace(",", ".")
+        .replace(/\s+/g, " ");
+
+      if (!cleaned) return false;
+      if (/^-?\d{1,2}$/.test(cleaned)) return true;
+      if (/^(huti|ohi|nolla|yksi|kaksi|kolme|neljä|nelja|viisi|kuusi|seitsemän|seitseman|kahdeksan|yhdeksän|kymmenen|yksitoista|kaksitoista)$/.test(cleaned)) return true;
+      return false;
+    }
+
+    function normalizeCommandForActivePlayer(rawInput) {
+      let text = (rawInput || "").trim();
+      const active = currentActivePlayer();
+
+      if (!active || !text) return text;
+
+      // Jos käyttäjä antaa pelkän tuloksen, esim. "2" tai "kaksi",
+      // kohdistetaan se varmasti vuorossa olevalle pelaajalle.
+      if (inputLooksLikeOnlyPoints(text)) {
+        return active.name + " " + text;
+      }
+
+      // Jos käyttäjä kirjoittaa vahingossa "petri2", tulkitaan se "petri 2".
+      const activeKey = normalizeName(active.name).replace(/\s+/g, "");
+      const textKey = normalizeName(text).replace(/\s+/g, "");
+      const tail = textKey.slice(activeKey.length);
+      if (textKey.startsWith(activeKey) && /^-?\d{1,2}$/.test(tail)) {
+        return active.name + " " + tail;
+      }
+
+      return text;
+    }
+
     function addScoreFromCommand() {
       const input = $("commandInput");
-      const rawInput = input.value;
+      const rawInput = normalizeCommandForActivePlayer(input.value);
       const command = parseCommand(rawInput);
       input.value = "";
 
