@@ -29,10 +29,12 @@ https://petris66.github.io/molkky/?game=OMA_PELI&view=score&v=32
 
 1. Avaa kirjaajalinkki
 2. Syötä pelaajat
-3. Valitse tavoitepisteet (esim. 50)
+3. Valitse tavoitepisteet (esim. 25, 30, 40 tai 50)
 4. Paina **Aloita peli**
-5. Syötä heitot (esim. `Jari 2`)
+5. Syötä heitot (esim. `Elias 2`)
 6. Jaa katsojalinkki muille
+
+👉 Ohjelma täyttää automaattisesti vuorossa olevan pelaajan nimen syöttökenttään.
 
 ---
 
@@ -42,8 +44,8 @@ Voit käyttää puhetta iPhonessa:
 
 Esimerkkejä:
 - `Niina 10`
-- `Jari 2`
-- `huti`
+- `elias 2`
+- `Lucas huti`
 
 👉 Huom: numerot kannattaa sanoa numeroina (esim. “kaksi” tai “2”)
 
@@ -55,6 +57,8 @@ Esimerkkejä:
 - ✅ Toimii mobiilissa
 - ✅ Puheentunnistus
 - ✅ Automaattinen vuorottelu
+- ✅ Vuorossa oleva pelaaja täyttyy automaattisesti
+- ✅ Valittava tavoitepistemäärä (esim. 25–50)
 - ✅ Yliheitto → pisteet puoleen
 - ✅ Täsmälleen tavoite → voitto
 - ✅ Kolme hutia → ulos pelistä
