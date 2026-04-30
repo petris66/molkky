@@ -8,6 +8,8 @@
   <meta name="apple-mobile-web-app-title" content="Mölkky" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.webmanifest" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
   <title>Mölkky tulostaulu</title>
 
   <style>
@@ -252,6 +254,12 @@
       <div class="badge" id="roundBadge">Tulostaulu</div>
     </header>
 
+    <section class="card hidden" id="viewerCard">
+      <label>Live-tulostaulu</label>
+      <div class="status" id="viewerStatus">Odotetaan peliä...</div>
+      <p class="hint">Tämä on katsojanäkymä. Pisteet päivittyvät, kun kirjaaja tekee kirjauksia.</p>
+    </section>
+
     <section class="card" id="setupCard">
       <label for="playersInput">Pelaajat</label>
       <textarea id="playersInput" placeholder="Esim. Niina, Mikko, Sanna, Jari"></textarea>
@@ -295,6 +303,18 @@
       </div>
     </section>
 
+    <section class="card hidden" id="shareCard">
+      <label>Katsojalinkki</label>
+      <input id="viewerLink" readonly />
+      <div class="grid2">
+        <button class="secondary" id="copyViewerBtn">Kopioi katsojalinkki</button>
+        <button class="secondary" id="newGameIdBtn">Vaihda pelin koodi</button>
+      </div>
+      <p class="hint">
+        Jaa tämä linkki muille pelaajille. He näkevät pelkän live-tulostaulun omilla puhelimillaan.
+      </p>
+    </section>
+
     <section class="players" id="scoreboard"></section>
 
     <section class="card hidden" id="historyCard">
@@ -309,6 +329,23 @@
 
   <script>
     const STORAGE_KEY = "molkky-sukukokous-v1";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA8YVrrl5Q6nGLFm7NV-_r8JQcJ_-s4mpk",
+      authDomain: "molkky---score.firebaseapp.com",
+      databaseURL: "https://molkky---score-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "molkky---score",
+      storageBucket: "molkky---score.firebasestorage.app",
+      messagingSenderId: "291843238154",
+      appId: "1:291843238154:web:5b6787829931eab07df2f3"
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    let gameId = (params.get("game") || localStorage.getItem("molkky-game-id") || "vappu").trim().toLowerCase();
+    const viewerMode = ["score", "scoreboard", "viewer", "katsoja"].includes((params.get("view") || "").toLowerCase());
+    let db = null;
+    let gameRef = null;
+    let applyingRemote = false;
 
     let game = {
       players: [],
@@ -331,9 +368,22 @@
 
     function save() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
+      localStorage.setItem("molkky-game-id", gameId);
+
+      if (gameRef && !applyingRemote && game.players && game.players.length) {
+        gameRef.set({
+          ...game,
+          updatedAt: new Date().toISOString()
+        }).catch(() => {
+          setStatus("Firebase-tallennus epäonnistui. Paikallinen peli jatkuu.");
+        });
+      }
+
+      updateShareLink();
     }
 
     function load() {
+      if (viewerMode) return false;
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return false;
@@ -400,21 +450,104 @@
     }
 
     function showGame() {
+      if (viewerMode) return showViewer();
+      $("viewerCard").classList.add("hidden");
       $("setupCard").classList.add("hidden");
       $("gameCard").classList.remove("hidden");
       $("historyCard").classList.remove("hidden");
+      if ($("shareCard")) $("shareCard").classList.remove("hidden");
+      updateShareLink();
     }
 
     function showSetup() {
+      $("viewerCard").classList.add("hidden");
       $("setupCard").classList.remove("hidden");
       $("gameCard").classList.add("hidden");
       $("historyCard").classList.add("hidden");
+      if ($("shareCard")) $("shareCard").classList.add("hidden");
       $("scoreboard").innerHTML = "";
     }
 
     function setStatus(text) {
       if ($("status")) $("status").textContent = text;
       if ($("setupStatus")) $("setupStatus").textContent = text;
+      if ($("viewerStatus")) $("viewerStatus").textContent = text;
+    }
+
+    function safeGameId(value) {
+      return String(value || "vappu")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "") || "vappu";
+    }
+
+    function initFirebase() {
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+        gameId = safeGameId(gameId);
+        localStorage.setItem("molkky-game-id", gameId);
+        gameRef = db.ref("games/" + gameId);
+        listenToLiveGame();
+        updateShareLink();
+      } catch (err) {
+        setStatus("Firebase ei käynnistynyt. Tarkista Realtime Database -asetukset.");
+      }
+    }
+
+    function listenToLiveGame() {
+      if (!gameRef) return;
+      gameRef.on("value", snapshot => {
+        const remote = snapshot.val();
+        if (!remote || !remote.players) {
+          if (viewerMode) {
+            showViewer();
+            setStatus("Odotetaan, että kirjaaja aloittaa pelin koodilla: " + gameId);
+          }
+          return;
+        }
+
+        applyingRemote = true;
+        game = {
+          players: remote.players || [],
+          currentTurn: remote.currentTurn || 0,
+          history: remote.history || [],
+          startedAt: remote.startedAt || null,
+          targetScore: remote.targetScore || 50
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
+        applyingRemote = false;
+
+        if (viewerMode) {
+          showViewer();
+        } else if (game.players.length) {
+          showGame();
+          if ($("shareCard")) $("shareCard").classList.remove("hidden");
+        }
+
+        render();
+        if (!viewerMode) prefillCurrentPlayer();
+        setStatus(viewerMode ? "Live-tulostaulu päivitetty." : "Live-yhteys käytössä. Pelikoodi: " + gameId);
+      }, () => {
+        setStatus("Live-tulostaulun lataus epäonnistui.");
+      });
+    }
+
+    function updateShareLink() {
+      const input = $("viewerLink");
+      if (!input) return;
+      const baseUrl = window.location.origin + window.location.pathname;
+      input.value = baseUrl + "?game=" + encodeURIComponent(gameId) + "&view=score";
+    }
+
+    function showViewer() {
+      $("setupCard").classList.add("hidden");
+      $("gameCard").classList.add("hidden");
+      $("historyCard").classList.add("hidden");
+      if ($("shareCard")) $("shareCard").classList.add("hidden");
+      $("viewerCard").classList.remove("hidden");
     }
 
     function currentActivePlayer() {
@@ -660,6 +793,7 @@
     function resetGame() {
       if (!confirm("Tyhjennetäänkö koko peli?")) return;
       localStorage.removeItem(STORAGE_KEY);
+      if (gameRef) gameRef.remove().catch(() => {});
       game = { players: [], currentTurn: 0, history: [], startedAt: null, targetScore: 50 };
       showSetup();
     }
@@ -740,6 +874,33 @@
       setStatus("Nimi on valmiina. Paina iPhonen mikkiä ja sano vain heittotulos, esim. kaksi tai huti.");
     });
 
+    $("copyViewerBtn").addEventListener("click", async () => {
+      updateShareLink();
+      const link = $("viewerLink").value;
+      try {
+        await navigator.clipboard.writeText(link);
+        setStatus("Katsojalinkki kopioitu.");
+      } catch {
+        $("viewerLink").select();
+        setStatus("Kopioi linkki kentästä ja lähetä muille.");
+      }
+    });
+
+    $("newGameIdBtn").addEventListener("click", () => {
+      const next = prompt("Anna pelin koodi, esim. vappu2026", gameId);
+      if (!next) return;
+      gameId = safeGameId(next);
+      localStorage.setItem("molkky-game-id", gameId);
+      if (gameRef) gameRef.off();
+      if (db) {
+        gameRef = db.ref("games/" + gameId);
+        listenToLiveGame();
+      }
+      save();
+      updateShareLink();
+      setStatus("Pelikoodi vaihdettu: " + gameId);
+    });
+
     $("commandInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") addScoreFromCommand();
     });
@@ -754,8 +915,15 @@
       });
     }
 
-    // Autolataa, jos peli on jo kesken.
-    load();
+    // Käynnistä Firebase-liveyhteys ja autolataa, jos peli on jo kesken.
+    initFirebase();
+    if (viewerMode) {
+      showViewer();
+      setStatus("Odotetaan livepeliä koodilla: " + gameId);
+    } else {
+      load();
+      updateShareLink();
+    }
   </script>
 </body>
 </html>

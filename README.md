@@ -55,3 +55,14 @@ Kun peli alkaa, kirjauskenttään täytetään automaattisesti vuorossa olevan p
 - huti
 
 Kirjauksen jälkeen sovellus siirtyy seuraavaan aktiiviseen pelaajaan ja täyttää tämän nimen kenttään.
+
+
+## Live-tulostaulu Firebase Realtime Databasella
+
+Kirjaajan näkymä:
+https://petris66.github.io/molkky/?game=vappu2026
+
+Katsojanäkymä:
+https://petris66.github.io/molkky/?game=vappu2026&view=score
+
+Kirjaajan näkymässä näkyy katsojalinkki, jonka voi kopioida ja lähettää muille pelaajille.

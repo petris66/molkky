@@ -1,4 +1,4 @@
-const CACHE_NAME = "molkky-tulostaulu-v3";
+const CACHE_NAME = "molkky-tulostaulu-v4";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
