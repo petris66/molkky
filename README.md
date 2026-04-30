@@ -66,3 +66,13 @@ Katsojanäkymä:
 https://petris66.github.io/molkky/?game=vappu2026&view=score
 
 Kirjaajan näkymässä näkyy katsojalinkki, jonka voi kopioida ja lähettää muille pelaajille.
+
+
+## Yliheiton korjaus
+
+Yli tavoitepistemäärän mennyt heitto kirjataan nyt selvästi historiaan ja tilaviestiin.
+Palautuspistemäärä on puolet tavoitepistemäärästä:
+- 50 → 25
+- 40 → 20
+- 30 → 15
+- 25 → 12

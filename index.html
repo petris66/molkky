@@ -346,6 +346,7 @@
     let db = null;
     let gameRef = null;
     let applyingRemote = false;
+    let lastLocalWriteAt = 0;
 
     let game = {
       players: [],
@@ -371,6 +372,7 @@
       localStorage.setItem("molkky-game-id", gameId);
 
       if (gameRef && !applyingRemote && game.players && game.players.length) {
+        lastLocalWriteAt = Date.now();
         gameRef.set({
           ...game,
           updatedAt: new Date().toISOString()
@@ -529,7 +531,12 @@
 
         render();
         if (!viewerMode) prefillCurrentPlayer();
-        setStatus(viewerMode ? "Live-tulostaulu päivitetty." : "Live-yhteys käytössä. Pelikoodi: " + gameId);
+
+        // Älä ylikirjoita juuri tehdyn kirjauksen viestiä, esim. yliheittoilmoitusta.
+        const justWroteLocally = !viewerMode && (Date.now() - lastLocalWriteAt < 1800);
+        if (!justWroteLocally) {
+          setStatus(viewerMode ? "Live-tulostaulu päivitetty." : "Live-yhteys käytössä. Pelikoodi: " + gameId);
+        }
       }, () => {
         setStatus("Live-tulostaulun lataus epäonnistui.");
       });
@@ -727,7 +734,7 @@
         setStatus(player.name + " on jo ulkona.");
         return;
       }
-      if (player.score === 50) {
+      if (player.score === game.targetScore) {
         setStatus(player.name + " on jo voittanut.");
         return;
       }
@@ -747,8 +754,9 @@
         player.misses = 0;
         const next = player.score + points;
         if (next > game.targetScore) {
-          player.score = 25;
-          message = player.name + " sai " + points + ", meni yli tavoitteen " + game.targetScore + " → takaisin 25 pisteeseen.";
+          const resetScore = Math.floor(game.targetScore / 2);
+          player.score = resetScore;
+          message = "⚠️ " + player.name + " sai " + points + ", meni yli tavoitteen " + game.targetScore + " → takaisin " + resetScore + " pisteeseen.";
         } else {
           player.score = next;
           message = player.name + " +" + points + " → " + player.score + " pistettä.";
