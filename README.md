@@ -30,3 +30,12 @@ Paina kirjauskenttää, paina iPhonen näppäimistön mikrofonia ja sano esimerk
 - Täsmälleen 50 pistettä voittaa.
 - Jos menee yli 50, tulos palautuu 25 pisteeseen.
 - Kolme peräkkäistä hutia pudottaa pelaajan pelistä.
+
+
+## Päivitys
+
+Tämä versio ymmärtää myös suomenkieliset numerosanat:
+
+- Jari kaksi
+- Niina kahdeksan
+- Mikko kymmenen

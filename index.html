@@ -436,11 +436,53 @@
       return null;
     }
 
+    function parseFinnishNumber(value) {
+      const key = normalizeName(value)
+        .replaceAll("-", " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const numbers = {
+        "nolla": 0,
+        "yksi": 1,
+        "yyksi": 1,
+        "kaksi": 2,
+        "kax": 2,
+        "kolme": 3,
+        "nelja": 4,
+        "neljä": 4,
+        "viisi": 5,
+        "kuusi": 6,
+        "seitseman": 7,
+        "seitsemän": 7,
+        "kasi": 8,
+        "käsi": 8,
+        "kahdeksan": 8,
+        "yhdeksan": 9,
+        "kymmenen": 10,
+        "yksitoista": 11,
+        "kaksitoista": 12
+      };
+
+      if (numbers[key] !== undefined) return numbers[key];
+
+      // iPhone voi joskus kirjoittaa "kymmenen kaksi" tms.
+      const spaced = {
+        "yksi toista": 11,
+        "kaksi toista": 12
+      };
+      if (spaced[key] !== undefined) return spaced[key];
+
+      return null;
+    }
+
     function parseCommand(text) {
       const cleaned = (text || "")
         .trim()
         .replace(",", ".")
         .replace(/\bpistetta\b/gi, "")
+        .replace(/\bpistettä\b/gi, "")
+        .replace(/\bpisteitä\b/gi, "")
         .replace(/\bpiste\b/gi, "")
         .replace(/\bplus\b/gi, "")
         .replace(/\+/g, " ")
@@ -456,6 +498,15 @@
 
       const scoreMatch = cleaned.match(/^(.+?)\s+(-?\d{1,2})$/);
       if (scoreMatch) return { type: "score", name: scoreMatch[1], points: Number(scoreMatch[2]) };
+
+      // UUSI: ymmärrä myös numerot sanoina, esim. "Jari kaksi"
+      const wordMatch = cleaned.match(/^(.+?)\s+([a-zåäö\s-]+)$/i);
+      if (wordMatch) {
+        const number = parseFinnishNumber(wordMatch[2]);
+        if (number !== null) {
+          return { type: "score", name: wordMatch[1], points: number };
+        }
+      }
 
       return { type: "unknown", raw: cleaned };
     }
