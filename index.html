@@ -255,6 +255,13 @@
     <section class="card" id="setupCard">
       <label for="playersInput">Pelaajat</label>
       <textarea id="playersInput" placeholder="Esim. Niina, Mikko, Sanna, Jari"></textarea>
+
+      <label for="targetInput" style="margin-top: 12px;">Voittopistemäärä</label>
+      <input id="targetInput" inputmode="numeric" type="number" min="10" max="50" step="1" value="50" />
+      <p class="hint">
+        Normaali Mölkky pelataan 50 pisteeseen. Lyhyessä pelissä voit käyttää esim. 25, 30, 35 tai 40.
+      </p>
+
       <div class="grid2">
         <button id="startBtn">Aloita uusi peli</button>
         <button class="secondary" id="loadBtn">Jatka tallennettua</button>
@@ -262,6 +269,7 @@
       <p class="hint">
         Syötä nimet pilkulla tai rivinvaihdoilla erotettuna. Peli tallentuu automaattisesti tähän puhelimeen.
       </p>
+      <div class="status" id="setupStatus">Valitse pelaajat ja tavoitepisteet.</div>
     </section>
 
     <section class="card hidden" id="gameCard">
@@ -283,7 +291,7 @@
       <div class="status" id="status">Valmis. Kirjaa ensimmäinen heitto.</div>
       <div class="smallrow">
         <span id="turnText"></span>
-        <span>50 täsmälleen voittaa</span>
+        <span>Täsmälleen tavoite voittaa</span>
       </div>
     </section>
 
@@ -306,7 +314,8 @@
       players: [],
       currentTurn: 0,
       history: [],
-      startedAt: null
+      startedAt: null,
+      targetScore: 50
     };
 
     const $ = (id) => document.getElementById(id);
@@ -331,6 +340,7 @@
         const parsed = JSON.parse(raw);
         if (!parsed.players || !parsed.players.length) return false;
         game = parsed;
+        if (!game.targetScore) game.targetScore = 50;
         showGame();
         render();
         setStatus("Tallennettu peli ladattu.");
@@ -362,6 +372,12 @@
         return;
       }
 
+      const targetScore = Number($("targetInput").value || 50);
+      if (!Number.isInteger(targetScore) || targetScore < 10 || targetScore > 50) {
+        setStatus("Voittopistemäärän pitää olla kokonaisluku 10–50.");
+        return;
+      }
+
       game = {
         players: unique.map(name => ({
           name,
@@ -371,13 +387,14 @@
         })),
         currentTurn: 0,
         history: [],
-        startedAt: new Date().toISOString()
+        startedAt: new Date().toISOString(),
+        targetScore
       };
 
       save();
       showGame();
       render();
-      setStatus("Peli aloitettu. Ensimmäisenä: " + game.players[0].name + ".");
+      setStatus("Peli aloitettu. Tavoite " + targetScore + " pistettä. Ensimmäisenä: " + game.players[0].name + ".");
     }
 
     function showGame() {
@@ -394,16 +411,17 @@
     }
 
     function setStatus(text) {
-      $("status").textContent = text;
+      if ($("status")) $("status").textContent = text;
+      if ($("setupStatus")) $("setupStatus").textContent = text;
     }
 
     function currentActivePlayer() {
-      const active = game.players.filter(p => !p.out && p.score !== 50);
+      const active = game.players.filter(p => !p.out && p.score !== game.targetScore);
       if (!active.length) return null;
       for (let i = 0; i < game.players.length; i++) {
         const idx = (game.currentTurn + i) % game.players.length;
         const p = game.players[idx];
-        if (!p.out && p.score !== 50) return p;
+        if (!p.out && p.score !== game.targetScore) return p;
       }
       return null;
     }
@@ -413,7 +431,7 @@
       for (let i = 1; i <= game.players.length; i++) {
         const idx = (game.currentTurn + i) % game.players.length;
         const p = game.players[idx];
-        if (!p.out && p.score !== 50) {
+        if (!p.out && p.score !== game.targetScore) {
           game.currentTurn = idx;
           return;
         }
@@ -514,10 +532,6 @@
     function addScoreFromCommand() {
       const input = $("commandInput");
       const command = parseCommand(input.value);
-      if (command.type === "unknown") {
-  setStatus("❌ En ymmärtänyt komentoa: " + input.value);
-  return;
-}
       input.value = "";
 
       if (command.type === "empty") return;
@@ -525,7 +539,7 @@
       if (command.type === "reset") return resetGame();
 
       if (command.type !== "score") {
-        setStatus("❌ En ymmärtänyt komentoa: " + input);
+        setStatus('En ymmärtänyt. Kokeile: "Niina 10" tai "Niina huti".');
         return;
       }
 
@@ -570,14 +584,14 @@
       } else {
         player.misses = 0;
         const next = player.score + points;
-        if (next > 50) {
+        if (next > game.targetScore) {
           player.score = 25;
-          message = player.name + " sai " + points + ", meni yli 50:n → takaisin 25 pisteeseen.";
+          message = player.name + " sai " + points + ", meni yli tavoitteen " + game.targetScore + " → takaisin 25 pisteeseen.";
         } else {
           player.score = next;
           message = player.name + " +" + points + " → " + player.score + " pistettä.";
-          if (player.score === 50) {
-            message = "🏆 " + player.name + " voitti täsmälleen 50 pisteellä!";
+          if (player.score === game.targetScore) {
+            message = "🏆 " + player.name + " voitti täsmälleen " + game.targetScore + " pisteellä!";
           }
         }
       }
@@ -615,7 +629,7 @@
     function resetGame() {
       if (!confirm("Tyhjennetäänkö koko peli?")) return;
       localStorage.removeItem(STORAGE_KEY);
-      game = { players: [], currentTurn: 0, history: [], startedAt: null };
+      game = { players: [], currentTurn: 0, history: [], startedAt: null, targetScore: 50 };
       showSetup();
     }
 
@@ -629,9 +643,9 @@
     }
 
     function render() {
-      $("roundBadge").textContent = game.players.length ? game.players.length + " pelaajaa" : "Tulostaulu";
+      $("roundBadge").textContent = game.players.length ? game.players.length + " pelaajaa · " + game.targetScore + " p" : "Tulostaulu";
       const active = currentActivePlayer();
-      $("turnText").textContent = active ? "Vuorossa: " + active.name : "Peli päättynyt";
+      $("turnText").textContent = active ? "Vuorossa: " + active.name + " · tavoite " + game.targetScore : "Peli päättynyt";
 
       const sorted = [...game.players].sort((a, b) => {
         if (a.score === 50 && b.score !== 50) return -1;
@@ -642,10 +656,10 @@
 
       $("scoreboard").innerHTML = sorted.map(p => {
         const classes = ["player"];
-        if (p.score === 50) classes.push("winner");
+        if (p.score === game.targetScore) classes.push("winner");
         if (p.out) classes.push("out");
-        const state = p.score === 50 ? "🏆 voittaja" : p.out ? "ulkona" : "hudit " + p.misses + "/3";
-        const need = p.score < 50 ? "tarvitsee " + (50 - p.score) : "";
+        const state = p.score === game.targetScore ? "🏆 voittaja" : p.out ? "ulkona" : "hudit " + p.misses + "/3";
+        const need = p.score < game.targetScore ? "tarvitsee " + (game.targetScore - p.score) : "";
         return `
           <div class="${classes.join(" ")}">
             <div>

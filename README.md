@@ -39,3 +39,8 @@ Tämä versio ymmärtää myös suomenkieliset numerosanat:
 - Jari kaksi
 - Niina kahdeksan
 - Mikko kymmenen
+
+
+## Tavoitepisteet
+
+Aloitusnäkymässä voit valita voittopistemäärän. Normaali peli on 50 pistettä, mutta lyhyessä pelissä voit käyttää esimerkiksi 25, 30, 35 tai 40.
