@@ -497,7 +497,11 @@ function addScoreFromCommand() {
 
 function applyScore(playerName, points) {
   setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY START: " + playerName + " +" + points);
-  const player = findPlayer(playerName);
+  const player = game.players.find(p => {
+  const n = normalizeName(p.name);
+  const t = normalizeName(playerName);
+  return n === t || n.startsWith(t) || t.startsWith(n);
+});
   if (!player) return setStatus("❌ Pelaajaa ei löytynyt.");
   if (player.out) { setStatus(player.name + " on jo ulkona."); prefillCurrentPlayer(); return; }
   if (player.score === game.targetScore) { setStatus(player.name + " on jo voittanut."); prefillCurrentPlayer(); return; }
