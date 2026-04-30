@@ -26,7 +26,7 @@
 <body>
 <div class="wrap">
   <header><h1>Mölkky</h1><div class="badge" id="roundBadge">Tulostaulu</div></header>
-  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 25 · apply-fix</div>
+  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 26 · snapshot-fix</div>
 
   <section class="card hidden" id="viewerCard">
     <label>Live-tulostaulu</label>
@@ -156,6 +156,16 @@ function asArray(value) {
   }
   return [];
 }
+
+function snapshotForUndo() {
+  return {
+    players: JSON.parse(JSON.stringify(asArray(game.players))),
+    currentTurn: game.currentTurn || 0,
+    history: [],
+    startedAt: game.startedAt || null,
+    targetScore: game.targetScore || 50
+  };
+}
 function setStatus(text) {
   if ($("status")) $("status").textContent = text;
   if ($("setupStatus")) $("setupStatus").textContent = text;
@@ -252,7 +262,25 @@ function save() {
   game.history = asArray(game.history);
   if (gameRef && !applyingRemote && game.players.length) {
     lastLocalWriteAt = Date.now();
-    gameRef.set({ ...game, updatedAt: new Date().toISOString() }).catch(() => setStatus("Firebase-tallennus epäonnistui."));
+    const firebaseGame = {
+      ...game,
+      players: asArray(game.players),
+      history: asArray(game.history).map(h => ({
+        at: h.at || null,
+        player: h.player || "",
+        points: Number(h.points || 0),
+        message: h.message || "",
+        before: h.before ? {
+          players: asArray(h.before.players),
+          currentTurn: h.before.currentTurn || 0,
+          history: [],
+          startedAt: h.before.startedAt || null,
+          targetScore: h.before.targetScore || game.targetScore || 50
+        } : null
+      })),
+      updatedAt: new Date().toISOString()
+    };
+    gameRef.set(firebaseGame).catch(err => setStatus("Firebase-tallennus epäonnistui: " + (err && err.message ? err.message : err)));
   }
   updateShareLink();
 }
@@ -533,7 +561,7 @@ function applyScore(playerName, points) {
       return;
     }
 
-    const before = JSON.parse(JSON.stringify(game));
+    const before = snapshotForUndo();
     let message = "";
 
     if (points === 0) {
@@ -576,10 +604,10 @@ function applyScore(playerName, points) {
 
     setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY OK: " + message);
 
-    save();
     render();
     setStatus(message);
     speak(message);
+    save();
   } catch (err) {
     const msg = err && err.message ? err.message : String(err);
     setStatus("❌ Virhe kirjauksessa: " + msg);
