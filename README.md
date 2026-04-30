@@ -1,9 +1,4 @@
-# Mölkky tulostaulu clean live
+# Mölkky clean live no service worker
 
-Puhtaaksi rakennettu live-versio:
-- Firebase Realtime Database
-- kirjaaja + katsojalinkki
-- vuorossa olevan nimen automaattinen esitäyttö
-- pelkkä tulos kohdistuu aina vuorossa olevalle pelaajalle
-- yliheitto palauttaa puoleen tavoitepistemäärästä
-- voitto täsmälleen tavoitepistemäärällä
+Build 21. Service worker poistettu välimuistiongelmien välttämiseksi.
+Sivun yläreunassa näkyy: Build 21 · no service worker.

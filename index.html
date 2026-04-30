@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#155e75" />
+  <meta http-equiv="Cache-Control" content="no-store" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Mölkky" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -25,6 +26,7 @@
 <body>
 <div class="wrap">
   <header><h1>Mölkky</h1><div class="badge" id="roundBadge">Tulostaulu</div></header>
+  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 21 · no service worker</div>
 
   <section class="card hidden" id="viewerCard">
     <label>Live-tulostaulu</label>
@@ -534,10 +536,10 @@ $("newGameBtn").addEventListener("click", () => {
 });
 $("clearLiveBtn").addEventListener("click", resetGame);
 
+// Service worker poistettu tästä buildistä välimuistiongelmien välttämiseksi.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister())).catch(() => {});
 }
-
 initFirebase();
 if (viewerMode) {
   showViewer();
