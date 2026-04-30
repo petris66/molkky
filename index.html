@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#155e75" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Mölkky" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>Mölkky tulostaulu</title>
+
+  <style>
+    :root {
+      --bg: #f7f3e8;
+      --card: #fffaf0;
+      --text: #172026;
+      --muted: #65737e;
+      --primary: #155e75;
+      --primary2: #0e7490;
+      --danger: #b91c1c;
+      --ok: #15803d;
+      --line: rgba(23, 32, 38, 0.14);
+      --shadow: 0 10px 24px rgba(0,0,0,.09);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: env(safe-area-inset-top) 14px env(safe-area-inset-bottom);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(14,116,144,.14), transparent 34rem),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 14px 0 28px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin: 6px 0 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 8vw, 42px);
+      letter-spacing: -0.04em;
+    }
+
+    .badge {
+      background: rgba(21,94,117,.1);
+      color: var(--primary);
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      white-space: nowrap;
+      font-size: 14px;
+    }
+
+    .card {
+      background: rgba(255,250,240,.88);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin: 12px 0;
+      backdrop-filter: blur(8px);
+    }
+
+    label {
+      display: block;
+      font-weight: 800;
+      margin: 0 0 7px;
+      font-size: 15px;
+    }
+
+    input, textarea, button, select {
+      width: 100%;
+      font: inherit;
+      font-size: 18px;
+      border-radius: 14px;
+    }
+
+    input, textarea {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      padding: 14px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 78px;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary2);
+      box-shadow: 0 0 0 3px rgba(14,116,144,.18);
+    }
+
+    button {
+      border: 0;
+      background: var(--primary);
+      color: white;
+      padding: 14px 16px;
+      font-weight: 900;
+      cursor: pointer;
+      min-height: 52px;
+    }
+
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    button.good {
+      background: var(--ok);
+    }
+
+    button:active { transform: translateY(1px); }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+      margin-top: 8px;
+    }
+
+    .status {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(14,116,144,.09);
+      border: 1px solid rgba(14,116,144,.18);
+      font-weight: 750;
+      margin-top: 10px;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+    }
+
+    .players {
+      display: grid;
+      gap: 10px;
+    }
+
+    .player {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.78);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .player.winner {
+      border-color: rgba(21,128,61,.5);
+      background: rgba(22,163,74,.12);
+    }
+
+    .player.out {
+      opacity: .55;
+      background: rgba(185,28,28,.07);
+    }
+
+    .name {
+      font-size: 21px;
+      font-weight: 950;
+      line-height: 1.1;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-weight: 700;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+    .score {
+      font-size: 36px;
+      line-height: 1;
+      font-weight: 1000;
+      letter-spacing: -0.05em;
+      min-width: 58px;
+      text-align: right;
+    }
+
+    .history {
+      margin: 0;
+      padding-left: 22px;
+      color: var(--muted);
+      font-weight: 650;
+      font-size: 14px;
+      line-height: 1.55;
+      max-height: 180px;
+      overflow: auto;
+    }
+
+    .hidden { display: none !important; }
+
+    .smallrow {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 420px) {
+      .grid2, .grid3 { grid-template-columns: 1fr; }
+      .score { font-size: 32px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Mölkky</h1>
+      <div class="badge" id="roundBadge">Tulostaulu</div>
+    </header>
+
+    <section class="card" id="setupCard">
+      <label for="playersInput">Pelaajat</label>
+      <textarea id="playersInput" placeholder="Esim. Niina, Mikko, Sanna, Jari"></textarea>
+      <div class="grid2">
+        <button id="startBtn">Aloita uusi peli</button>
+        <button class="secondary" id="loadBtn">Jatka tallennettua</button>
+      </div>
+      <p class="hint">
+        Syötä nimet pilkulla tai rivinvaihdoilla erotettuna. Peli tallentuu automaattisesti tähän puhelimeen.
+      </p>
+    </section>
+
+    <section class="card hidden" id="gameCard">
+      <label for="commandInput">Kirjaus puheella tai näppäillen</label>
+      <input id="commandInput" inputmode="text" autocomplete="off"
+        placeholder='Sano esim. "Niina 10", "Niina huti" tai "undo"' />
+      <div class="grid2">
+        <button id="addBtn">Lisää kirjaus</button>
+        <button class="secondary" id="focusBtn">🎤 Puhu iPhonen mikrofonilla</button>
+      </div>
+      <div class="grid3">
+        <button class="secondary quick" data-points="0">Huti 0</button>
+        <button class="secondary quick" data-points="1">+1</button>
+        <button class="secondary quick" data-points="2">+2</button>
+        <button class="secondary quick" data-points="3">+3</button>
+        <button class="secondary quick" data-points="4">+4</button>
+        <button class="secondary quick" data-points="5">+5</button>
+      </div>
+      <div class="status" id="status">Valmis. Kirjaa ensimmäinen heitto.</div>
+      <div class="smallrow">
+        <span id="turnText"></span>
+        <span>50 täsmälleen voittaa</span>
+      </div>
+    </section>
+
+    <section class="players" id="scoreboard"></section>
+
+    <section class="card hidden" id="historyCard">
+      <label>Heittohistoria</label>
+      <ol class="history" id="history"></ol>
+      <div class="grid2">
+        <button class="secondary" id="undoBtn">Peru viimeisin</button>
+        <button class="danger" id="resetBtn">Tyhjennä peli</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "molkky-sukukokous-v1";
+
+    let game = {
+      players: [],
+      currentTurn: 0,
+      history: [],
+      startedAt: null
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function normalizeName(value) {
+      return (value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[åä]/g, "a")
+        .replace(/ö/g, "o")
+        .replace(/\s+/g, " ");
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (!parsed.players || !parsed.players.length) return false;
+        game = parsed;
+        showGame();
+        render();
+        setStatus("Tallennettu peli ladattu.");
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function startGame() {
+      const raw = $("playersInput").value;
+      const names = raw
+        .split(/[,\n]/)
+        .map(n => n.trim())
+        .filter(Boolean);
+
+      const unique = [];
+      const seen = new Set();
+      for (const name of names) {
+        const key = normalizeName(name);
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(name);
+        }
+      }
+
+      if (unique.length < 2) {
+        setStatus("Lisää vähintään kaksi pelaajaa.");
+        return;
+      }
+
+      game = {
+        players: unique.map(name => ({
+          name,
+          score: 0,
+          misses: 0,
+          out: false
+        })),
+        currentTurn: 0,
+        history: [],
+        startedAt: new Date().toISOString()
+      };
+
+      save();
+      showGame();
+      render();
+      setStatus("Peli aloitettu. Ensimmäisenä: " + game.players[0].name + ".");
+    }
+
+    function showGame() {
+      $("setupCard").classList.add("hidden");
+      $("gameCard").classList.remove("hidden");
+      $("historyCard").classList.remove("hidden");
+    }
+
+    function showSetup() {
+      $("setupCard").classList.remove("hidden");
+      $("gameCard").classList.add("hidden");
+      $("historyCard").classList.add("hidden");
+      $("scoreboard").innerHTML = "";
+    }
+
+    function setStatus(text) {
+      $("status").textContent = text;
+    }
+
+    function currentActivePlayer() {
+      const active = game.players.filter(p => !p.out && p.score !== 50);
+      if (!active.length) return null;
+      for (let i = 0; i < game.players.length; i++) {
+        const idx = (game.currentTurn + i) % game.players.length;
+        const p = game.players[idx];
+        if (!p.out && p.score !== 50) return p;
+      }
+      return null;
+    }
+
+    function advanceTurn() {
+      if (!game.players.length) return;
+      for (let i = 1; i <= game.players.length; i++) {
+        const idx = (game.currentTurn + i) % game.players.length;
+        const p = game.players[idx];
+        if (!p.out && p.score !== 50) {
+          game.currentTurn = idx;
+          return;
+        }
+      }
+    }
+
+    function findPlayer(namePart) {
+      const key = normalizeName(namePart);
+      if (!key) return null;
+
+      let exact = game.players.find(p => normalizeName(p.name) === key);
+      if (exact) return exact;
+
+      let starts = game.players.filter(p => normalizeName(p.name).startsWith(key));
+      if (starts.length === 1) return starts[0];
+
+      let includes = game.players.filter(p => normalizeName(p.name).includes(key));
+      if (includes.length === 1) return includes[0];
+
+      return null;
+    }
+
+    function parseCommand(text) {
+      const cleaned = (text || "")
+        .trim()
+        .replace(",", ".")
+        .replace(/\bpistetta\b/gi, "")
+        .replace(/\bpiste\b/gi, "")
+        .replace(/\bplus\b/gi, "")
+        .replace(/\+/g, " ")
+        .replace(/\s+/g, " ");
+
+      if (!cleaned) return { type: "empty" };
+
+      if (/^(undo|peru|takaisin)$/i.test(cleaned)) return { type: "undo" };
+      if (/^(uusi peli|reset|nollaa|tyhjenna|tyhjennä)$/i.test(cleaned)) return { type: "reset" };
+
+      const missMatch = cleaned.match(/^(.+?)\s+(huti|ohi|nolla|0)$/i);
+      if (missMatch) return { type: "score", name: missMatch[1], points: 0 };
+
+      const scoreMatch = cleaned.match(/^(.+?)\s+(-?\d{1,2})$/);
+      if (scoreMatch) return { type: "score", name: scoreMatch[1], points: Number(scoreMatch[2]) };
+
+      return { type: "unknown", raw: cleaned };
+    }
+
+    function addScoreFromCommand() {
+      const input = $("commandInput");
+      const command = parseCommand(input.value);
+      input.value = "";
+
+      if (command.type === "empty") return;
+      if (command.type === "undo") return undo();
+      if (command.type === "reset") return resetGame();
+
+      if (command.type !== "score") {
+        setStatus('En ymmärtänyt. Kokeile: "Niina 10" tai "Niina huti".');
+        return;
+      }
+
+      if (!Number.isInteger(command.points) || command.points < 0 || command.points > 12) {
+        setStatus("Mölkkyheiton pisteiden kannattaa olla 0–12.");
+        return;
+      }
+
+      const player = findPlayer(command.name);
+      if (!player) {
+        setStatus("Pelaajaa ei löytynyt: " + command.name + ".");
+        return;
+      }
+
+      applyScore(player.name, command.points);
+    }
+
+    function applyScore(playerName, points) {
+      const player = findPlayer(playerName);
+      if (!player) return;
+
+      if (player.out) {
+        setStatus(player.name + " on jo ulkona.");
+        return;
+      }
+      if (player.score === 50) {
+        setStatus(player.name + " on jo voittanut.");
+        return;
+      }
+
+      const before = JSON.parse(JSON.stringify(game));
+      let message = "";
+
+      if (points === 0) {
+        player.misses += 1;
+        if (player.misses >= 3) {
+          player.out = true;
+          message = player.name + " huti. Kolmas huti – pelaaja putoaa pelistä.";
+        } else {
+          message = player.name + " huti. Huteja peräkkäin: " + player.misses + "/3.";
+        }
+      } else {
+        player.misses = 0;
+        const next = player.score + points;
+        if (next > 50) {
+          player.score = 25;
+          message = player.name + " sai " + points + ", meni yli 50:n → takaisin 25 pisteeseen.";
+        } else {
+          player.score = next;
+          message = player.name + " +" + points + " → " + player.score + " pistettä.";
+          if (player.score === 50) {
+            message = "🏆 " + player.name + " voitti täsmälleen 50 pisteellä!";
+          }
+        }
+      }
+
+      game.history.push({
+        at: new Date().toISOString(),
+        player: player.name,
+        points,
+        message,
+        before
+      });
+
+      const idx = game.players.findIndex(p => p.name === player.name);
+      if (idx >= 0) game.currentTurn = idx;
+      advanceTurn();
+
+      save();
+      render();
+      setStatus(message);
+      speak(message);
+    }
+
+    function undo() {
+      const last = game.history.pop();
+      if (!last || !last.before) {
+        setStatus("Ei peruttavaa.");
+        return;
+      }
+      game = last.before;
+      save();
+      render();
+      setStatus("Viimeisin kirjaus peruttu.");
+    }
+
+    function resetGame() {
+      if (!confirm("Tyhjennetäänkö koko peli?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      game = { players: [], currentTurn: 0, history: [], startedAt: null };
+      showSetup();
+    }
+
+    function quickScore(points) {
+      const p = currentActivePlayer();
+      if (!p) {
+        setStatus("Ei aktiivista pelaajaa.");
+        return;
+      }
+      applyScore(p.name, Number(points));
+    }
+
+    function render() {
+      $("roundBadge").textContent = game.players.length ? game.players.length + " pelaajaa" : "Tulostaulu";
+      const active = currentActivePlayer();
+      $("turnText").textContent = active ? "Vuorossa: " + active.name : "Peli päättynyt";
+
+      const sorted = [...game.players].sort((a, b) => {
+        if (a.score === 50 && b.score !== 50) return -1;
+        if (b.score === 50 && a.score !== 50) return 1;
+        if (a.out !== b.out) return a.out ? 1 : -1;
+        return b.score - a.score;
+      });
+
+      $("scoreboard").innerHTML = sorted.map(p => {
+        const classes = ["player"];
+        if (p.score === 50) classes.push("winner");
+        if (p.out) classes.push("out");
+        const state = p.score === 50 ? "🏆 voittaja" : p.out ? "ulkona" : "hudit " + p.misses + "/3";
+        const need = p.score < 50 ? "tarvitsee " + (50 - p.score) : "";
+        return `
+          <div class="${classes.join(" ")}">
+            <div>
+              <div class="name">${escapeHtml(p.name)}</div>
+              <div class="meta">${state}${need ? " · " + need : ""}</div>
+            </div>
+            <div class="score">${p.score}</div>
+          </div>
+        `;
+      }).join("");
+
+      $("history").innerHTML = [...game.history].reverse().slice(0, 30).map(h =>
+        `<li>${escapeHtml(h.message)}</li>`
+      ).join("");
+    }
+
+    function speak(text) {
+      if (!("speechSynthesis" in window)) return;
+      // iPhone saattaa estää automaattisen puheen ennen käyttäjän ensimmäistä painallusta.
+      try {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "fi-FI";
+        utterance.rate = 1.0;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      } catch {}
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    $("startBtn").addEventListener("click", startGame);
+    $("loadBtn").addEventListener("click", () => {
+      if (!load()) alert("Tallennettua peliä ei löytynyt.");
+    });
+    $("addBtn").addEventListener("click", addScoreFromCommand);
+    $("undoBtn").addEventListener("click", undo);
+    $("resetBtn").addEventListener("click", resetGame);
+    $("focusBtn").addEventListener("click", () => {
+      $("commandInput").focus();
+      setStatus("Paina iPhonen näppäimistöstä mikrofonia ja sano: Niina 10.");
+    });
+
+    $("commandInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addScoreFromCommand();
+    });
+
+    document.querySelectorAll(".quick").forEach(btn => {
+      btn.addEventListener("click", () => quickScore(btn.dataset.points));
+    });
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+
+    // Autolataa, jos peli on jo kesken.
+    load();
+  </script>
+</body>
+</html>

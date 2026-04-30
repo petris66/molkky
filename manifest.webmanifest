@@ -1,0 +1,17 @@
+{
+  "name": "Mölkky tulostaulu",
+  "short_name": "Mölkky",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f3e8",
+  "theme_color": "#155e75",
+  "lang": "fi-FI",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
