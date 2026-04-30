@@ -74,7 +74,7 @@
       <button class="secondary quick" data-points="5">+5</button>
     </div>
     <div class="status" id="status">Valmis.</div>
-    <div class="status" id="debugBox" style="font-size:13px; font-weight:700; white-space:pre-wrap; align-items:flex-start;">Debug odottaa kirjausta.</div>
+   
     <div class="smallrow"><span id="turnText"></span><span>Täsmälleen tavoite voittaa</span></div>
   </section>
 
@@ -172,9 +172,7 @@ function setStatus(text) {
   if ($("viewerStatus")) $("viewerStatus").textContent = text;
 }
 
-function setDebug(text) {
-  if ($("debugBox")) $("debugBox").textContent = text;
-}
+
 function showSetup() {
   $("viewerCard").classList.add("hidden");
   $("setupCard").classList.remove("hidden");
@@ -480,11 +478,7 @@ function addScoreFromCommand() {
   const active = currentActivePlayer();
   const extracted = extractPointsFromInput(raw);
 
-  setDebug(
-    "RAW: " + JSON.stringify(raw) + "\\n" +
-    "ACTIVE: " + (active ? active.name + " / " + active.score : "null") + "\\n" +
-    "PARSED: " + JSON.stringify(extracted)
-  );
+  
 
   if (!extracted.ok && extracted.reason === "empty") {
     prefillCurrentPlayer();
@@ -513,12 +507,7 @@ function addScoreFromCommand() {
     return;
   }
 
-  setDebug(
-    "RAW: " + JSON.stringify(raw) + "\\n" +
-    "ACTIVE: " + active.name + " / " + active.score + "\\n" +
-    "PARSED: " + JSON.stringify(extracted) + "\\n" +
-    "CALL: applyScore(" + JSON.stringify(active.name) + ", " + points + ")"
-  );
+  
 
   applyScore(active.name, points);
 }
@@ -527,8 +516,7 @@ function applyScore(playerName, points) {
   try {
     const targetName = normalizeName(playerName);
 
-    setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY START: " + playerName + " +" + points);
-
+   
     game.players = asArray(game.players);
     game.history = asArray(game.history);
 
@@ -542,7 +530,7 @@ function applyScore(playerName, points) {
 
     if (idx < 0) {
       setStatus("❌ Pelaajaa ei löytynyt: " + playerName);
-      setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY ERROR: player not found");
+      
       prefillCurrentPlayer();
       return;
     }
@@ -602,7 +590,7 @@ function applyScore(playerName, points) {
     game.currentTurn = idx;
     advanceTurn();
 
-    setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY OK: " + message);
+    
 
     render();
     setStatus(message);
@@ -611,7 +599,7 @@ function applyScore(playerName, points) {
   } catch (err) {
     const msg = err && err.message ? err.message : String(err);
     setStatus("❌ Virhe kirjauksessa: " + msg);
-    setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY EXCEPTION: " + msg);
+    
     prefillCurrentPlayer();
   }
 }
