@@ -497,7 +497,7 @@
       save();
       showGame();
       render();
-      prefillCurrentPlayer();
+      prefillCurrentPlayer(true);
       setStatus("Peli aloitettu. Pelikoodi " + gameId + ". Tavoite " + targetScore + " pistettä. Ensimmäisenä: " + game.players[0].name + ".");
     }
 
@@ -509,6 +509,7 @@
       $("historyCard").classList.remove("hidden");
       if ($("shareCard")) $("shareCard").classList.remove("hidden");
       updateShareLink();
+      prefillCurrentPlayer(true);
     }
 
     function showSetup() {
@@ -658,7 +659,7 @@
       }
     }
 
-    function prefillCurrentPlayer() {
+    function prefillCurrentPlayer(force = false) {
       const input = $("commandInput");
       if (!input) return;
       const player = currentActivePlayer();
@@ -666,6 +667,16 @@
         input.value = "";
         return;
       }
+
+      const current = input.value.trim();
+      const playerNames = game.players.map(p => normalizeName(p.name));
+      const currentIsPlayerName = playerNames.includes(normalizeName(current));
+      const currentLooksEmpty = current === "";
+
+      if (force || currentLooksEmpty || currentIsPlayerName) {
+        input.value = player.name + " ";
+      }
+    }
       input.value = player.name + " ";
     }
 
@@ -778,15 +789,20 @@
 
     function addScoreFromCommand() {
       const input = $("commandInput");
-      const command = parseCommand(input.value);
+      const rawInput = input.value;
+      const command = parseCommand(rawInput);
       input.value = "";
 
-      if (command.type === "empty") return;
+      if (command.type === "empty") {
+        prefillCurrentPlayer(true);
+        return;
+      }
       if (command.type === "undo") return undo();
       if (command.type === "reset") return resetGame();
 
       if (command.type !== "score") {
-        setStatus('En ymmärtänyt. Kokeile: "Niina 10" tai "Niina huti".');
+        setStatus("❌ En ymmärtänyt komentoa: " + rawInput);
+        prefillCurrentPlayer(true);
         return;
       }
 
@@ -858,7 +874,7 @@
 
       save();
       render();
-      prefillCurrentPlayer();
+      prefillCurrentPlayer(true);
       setStatus(message);
       speak(message);
     }
@@ -872,7 +888,7 @@
       game = last.before;
       save();
       render();
-      prefillCurrentPlayer();
+      prefillCurrentPlayer(true);
       setStatus("Viimeisin kirjaus peruttu.");
     }
 

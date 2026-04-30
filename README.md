@@ -89,3 +89,14 @@ Kirjaajan näkymässä on lisäksi:
 - Nollaa tämä peli
 
 Nollaus tyhjentää nykyisen pelikoodin Firebase-datan ja katsojien tulostaulun.
+
+
+## Vuoropelaajan esitäytön korjaus
+
+Kirjauskenttä täyttyy nyt pakotetusti vuorossa olevan pelaajan nimellä:
+- pelin alussa
+- jokaisen kirjauksen jälkeen
+- undon jälkeen
+- pelinäkymään palatessa
+
+Yliheitto kirjautuu myös, kun kentässä on esitäytetty nimi ja käyttäjä sanelee vain tuloksen.
