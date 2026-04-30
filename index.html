@@ -502,6 +502,11 @@ function applyScore(playerName, points) {
   const t = normalizeName(playerName);
   return n === t || n.startsWith(t) || t.startsWith(n);
 });
+
+if (!player) {
+  setStatus("❌ Pelaajaa ei löytynyt: " + playerName);
+  return;
+}
   if (!player) return setStatus("❌ Pelaajaa ei löytynyt.");
   if (player.out) { setStatus(player.name + " on jo ulkona."); prefillCurrentPlayer(); return; }
   if (player.score === game.targetScore) { setStatus(player.name + " on jo voittanut."); prefillCurrentPlayer(); return; }
