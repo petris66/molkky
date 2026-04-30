@@ -26,7 +26,7 @@
 <body>
 <div class="wrap">
   <header><h1>Mölkky</h1><div class="badge" id="roundBadge">Tulostaulu</div></header>
-  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 23 · debug</div>
+  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 24 · history-fix</div>
 
   <section class="card hidden" id="viewerCard">
     <label>Live-tulostaulu</label>
@@ -144,6 +144,18 @@ function generateGameId() {
   const d = new Date();
   return "molkky-" + d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0") + "-" + Math.random().toString(36).slice(2,6);
 }
+
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  if (typeof value === "object") {
+    return Object.keys(value)
+      .sort((a, b) => Number(a) - Number(b))
+      .map(k => value[k])
+      .filter(Boolean);
+  }
+  return [];
+}
 function setStatus(text) {
   if ($("status")) $("status").textContent = text;
   if ($("setupStatus")) $("setupStatus").textContent = text;
@@ -216,9 +228,9 @@ function listenToLiveGame() {
     }
     applyingRemote = true;
     game = {
-      players: remote.players || [],
+      players: asArray(remote.players),
       currentTurn: remote.currentTurn || 0,
-      history: remote.history || [],
+      history: asArray(remote.history),
       startedAt: remote.startedAt || null,
       targetScore: remote.targetScore || 50
     };
@@ -236,6 +248,8 @@ function listenToLiveGame() {
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
   localStorage.setItem("molkky-game-id", gameId);
+  game.players = asArray(game.players);
+  game.history = asArray(game.history);
   if (gameRef && !applyingRemote && game.players.length) {
     lastLocalWriteAt = Date.now();
     gameRef.set({ ...game, updatedAt: new Date().toISOString() }).catch(() => setStatus("Firebase-tallennus epäonnistui."));
@@ -250,6 +264,8 @@ function load() {
     const parsed = JSON.parse(raw);
     if (!parsed.players || !parsed.players.length) return false;
     game = parsed;
+    game.players = asArray(game.players);
+    game.history = asArray(game.history);
     if (!game.targetScore) game.targetScore = 50;
     showGame();
     render();
@@ -513,6 +529,7 @@ function applyScore(playerName, points) {
     }
   }
 
+  game.history = asArray(game.history);
   game.history.push({ at:new Date().toISOString(), player:player.name, points, message, before });
   const idx = game.players.findIndex(p => p.name === player.name);
   if (idx >= 0) game.currentTurn = idx;
