@@ -26,7 +26,7 @@
 <body>
 <div class="wrap">
   <header><h1>Mölkky</h1><div class="badge" id="roundBadge">Tulostaulu</div></header>
-  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 24 · history-fix</div>
+  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 25 · apply-fix</div>
 
   <section class="card hidden" id="viewerCard">
     <label>Live-tulostaulu</label>
@@ -446,26 +446,22 @@ function extractPointsFromInput(raw) {
 
 function addScoreFromCommand() {
   const input = $("commandInput");
-  const raw = (input.value || "").trim();
-
-  setDebug("READ INPUT: " + JSON.stringify(raw));
-
-  if (!raw) {
-    setStatus("❌ Syöte puuttuu");
-    prefillCurrentPlayer();
-    return;
-  }
-
+  const raw = input.value;
   input.value = "";
 
   const active = currentActivePlayer();
   const extracted = extractPointsFromInput(raw);
 
   setDebug(
-    "RAW: " + JSON.stringify(raw) + "\n" +
-    "ACTIVE: " + (active ? active.name + " / " + active.score : "null") + "\n" +
+    "RAW: " + JSON.stringify(raw) + "\\n" +
+    "ACTIVE: " + (active ? active.name + " / " + active.score : "null") + "\\n" +
     "PARSED: " + JSON.stringify(extracted)
   );
+
+  if (!extracted.ok && extracted.reason === "empty") {
+    prefillCurrentPlayer();
+    return;
+  }
 
   if (extracted.ok && extracted.type === "undo") {
     return undo();
@@ -477,13 +473,12 @@ function addScoreFromCommand() {
   }
 
   if (!extracted.ok || extracted.type !== "score") {
-    setStatus("❌ En ymmärtänyt tulosta: " + raw);
+    setStatus("❌ En ymmärtänyt tulosta: " + raw + ". Sano esim. 2, kaksi tai huti.");
     prefillCurrentPlayer();
     return;
   }
 
   const points = extracted.points;
-
   if (!Number.isInteger(points) || points < 0 || points > 12) {
     setStatus("Pisteiden pitää olla 0–12. Syötit: " + points);
     prefillCurrentPlayer();
@@ -491,9 +486,9 @@ function addScoreFromCommand() {
   }
 
   setDebug(
-    "RAW: " + JSON.stringify(raw) + "\n" +
-    "ACTIVE: " + active.name + " / " + active.score + "\n" +
-    "PARSED: " + JSON.stringify(extracted) + "\n" +
+    "RAW: " + JSON.stringify(raw) + "\\n" +
+    "ACTIVE: " + active.name + " / " + active.score + "\\n" +
+    "PARSED: " + JSON.stringify(extracted) + "\\n" +
     "CALL: applyScore(" + JSON.stringify(active.name) + ", " + points + ")"
   );
 
@@ -501,58 +496,96 @@ function addScoreFromCommand() {
 }
 
 function applyScore(playerName, points) {
-  setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY START: " + playerName + " +" + points);
-  const player = game.players.find(p => {
-  const n = normalizeName(p.name);
-  const t = normalizeName(playerName);
-  return n === t || n.startsWith(t) || t.startsWith(n);
-});
+  try {
+    const targetName = normalizeName(playerName);
 
-if (!player) {
-  setStatus("❌ Pelaajaa ei löytynyt: " + playerName);
-  return;
-}
-  if (!player) return setStatus("❌ Pelaajaa ei löytynyt.");
-  if (player.out) { setStatus(player.name + " on jo ulkona."); prefillCurrentPlayer(); return; }
-  if (player.score === game.targetScore) { setStatus(player.name + " on jo voittanut."); prefillCurrentPlayer(); return; }
+    setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY START: " + playerName + " +" + points);
 
-  const before = JSON.parse(JSON.stringify(game));
-  let message = "";
+    game.players = asArray(game.players);
+    game.history = asArray(game.history);
 
-  if (points === 0) {
-    player.misses += 1;
-    if (player.misses >= 3) {
-      player.out = true;
-      message = player.name + " huti. Kolmas huti – pelaaja putoaa pelistä.";
-    } else {
-      message = player.name + " huti. Huteja peräkkäin: " + player.misses + "/3.";
+    let idx = game.players.findIndex(p => normalizeName(p.name) === targetName);
+    if (idx < 0) {
+      idx = game.players.findIndex(p => {
+        const n = normalizeName(p.name);
+        return n.startsWith(targetName) || targetName.startsWith(n);
+      });
     }
-  } else {
-    player.misses = 0;
-    const next = player.score + points;
-    if (next > game.targetScore) {
-      const resetScore = Math.floor(game.targetScore / 2);
-      player.score = resetScore;
-      message = "⚠️ " + player.name + " sai " + points + ", meni yli tavoitteen " + game.targetScore + " → takaisin " + resetScore + " pisteeseen.";
+
+    if (idx < 0) {
+      setStatus("❌ Pelaajaa ei löytynyt: " + playerName);
+      setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY ERROR: player not found");
+      prefillCurrentPlayer();
+      return;
+    }
+
+    const player = game.players[idx];
+
+    if (player.out) {
+      setStatus(player.name + " on jo ulkona.");
+      prefillCurrentPlayer();
+      return;
+    }
+
+    if (player.score === game.targetScore) {
+      setStatus(player.name + " on jo voittanut.");
+      prefillCurrentPlayer();
+      return;
+    }
+
+    const before = JSON.parse(JSON.stringify(game));
+    let message = "";
+
+    if (points === 0) {
+      player.misses = (player.misses || 0) + 1;
+      if (player.misses >= 3) {
+        player.out = true;
+        message = player.name + " huti. Kolmas huti – pelaaja putoaa pelistä.";
+      } else {
+        message = player.name + " huti. Huteja peräkkäin: " + player.misses + "/3.";
+      }
     } else {
-      player.score = next;
-      message = player.name + " +" + points + " → " + player.score + " pistettä.";
-      if (player.score === game.targetScore) {
-        message = "🏆 " + player.name + " voitti täsmälleen " + game.targetScore + " pisteellä!";
+      player.misses = 0;
+      const currentScore = Number(player.score || 0);
+      const next = currentScore + points;
+
+      if (next > game.targetScore) {
+        const resetScore = Math.floor(game.targetScore / 2);
+        player.score = resetScore;
+        message = "⚠️ " + player.name + " sai " + points + ", meni yli tavoitteen " + game.targetScore + " → takaisin " + resetScore + " pisteeseen.";
+      } else {
+        player.score = next;
+        message = player.name + " +" + points + " → " + player.score + " pistettä.";
+        if (player.score === game.targetScore) {
+          message = "🏆 " + player.name + " voitti täsmälleen " + game.targetScore + " pisteellä!";
+        }
       }
     }
+
+    game.players[idx] = player;
+    game.history.push({
+      at: new Date().toISOString(),
+      player: player.name,
+      points,
+      message,
+      before
+    });
+
+    game.currentTurn = idx;
+    advanceTurn();
+
+    setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY OK: " + message);
+
+    save();
+    render();
+    setStatus(message);
+    speak(message);
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    setStatus("❌ Virhe kirjauksessa: " + msg);
+    setDebug((($("debugBox") && $("debugBox").textContent) || "") + "\nAPPLY EXCEPTION: " + msg);
+    prefillCurrentPlayer();
   }
-
-  game.history = asArray(game.history);
-  game.history.push({ at:new Date().toISOString(), player:player.name, points, message, before });
-  const idx = game.players.findIndex(p => p.name === player.name);
-  if (idx >= 0) game.currentTurn = idx;
-  advanceTurn();
-
-  save();
-  render();
-  setStatus(message);
-  speak(message);
 }
 
 function undo() {
