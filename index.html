@@ -399,7 +399,7 @@ function extractPointsFromInput(raw) {
     return { ok: true, type: "score", points: 0 };
   }
 
-  const numberMatch = cleaned.match(/(?:^|\s)(\d{1,2})(?:\s|$)/);
+  const numberMatch = cleaned.match(/(\d{1,2})/);
   if (numberMatch) {
     return { ok: true, type: "score", points: Number(numberMatch[1]) };
   }
