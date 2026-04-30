@@ -456,7 +456,8 @@ function addScoreFromCommand() {
     setStatus("Peli päättynyt tai aktiivista pelaajaa ei löytynyt.");
     return;
   }
-
+console.log("INPUT:", raw);
+console.log("PARSED:", extracted);
   if (!extracted.ok || extracted.type !== "score") {
     setStatus("❌ En ymmärtänyt tulosta: " + raw + ". Sano esim. 2, kaksi tai huti.");
     prefillCurrentPlayer();
