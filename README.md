@@ -76,3 +76,16 @@ Palautuspistemäärä on puolet tavoitepistemäärästä:
 - 40 → 20
 - 30 → 15
 - 25 → 12
+
+
+## Uusi peli ja nollaus
+
+Aloitusnäkymässä voi valita:
+- Käytä nykyistä pelikoodia
+- Luo uusi peli automaattisesti
+
+Kirjaajan näkymässä on lisäksi:
+- Uusi peli uudella koodilla
+- Nollaa tämä peli
+
+Nollaus tyhjentää nykyisen pelikoodin Firebase-datan ja katsojien tulostaulun.

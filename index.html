@@ -229,6 +229,29 @@
 
     .hidden { display: none !important; }
 
+    .radioGroup {
+      display: grid;
+      gap: 8px;
+      margin: 10px 0 4px;
+      font-weight: 800;
+    }
+
+    .radioRow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,.7);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .radioRow input {
+      width: auto;
+      margin: 0;
+      transform: scale(1.25);
+    }
+
     .smallrow {
       display: flex;
       gap: 8px;
@@ -270,6 +293,22 @@
         Normaali Mölkky pelataan 50 pisteeseen. Lyhyessä pelissä voit käyttää esim. 25, 30, 35 tai 40.
       </p>
 
+      <label style="margin-top: 12px;">Pelin tallennus / live-linkki</label>
+      <div class="radioGroup">
+        <label class="radioRow">
+          <input type="radio" name="gameMode" value="same" checked />
+          Käytä nykyistä pelikoodia
+        </label>
+        <label class="radioRow">
+          <input type="radio" name="gameMode" value="new" />
+          Luo uusi peli automaattisesti
+        </label>
+      </div>
+      <input id="gameIdInput" placeholder="Pelikoodi esim. vappu2026" />
+      <p class="hint">
+        Sama pelikoodi näyttää saman live-tulostaulun. Uusi peli luo uuden katsojalinkin.
+      </p>
+
       <div class="grid2">
         <button id="startBtn">Aloita uusi peli</button>
         <button class="secondary" id="loadBtn">Jatka tallennettua</button>
@@ -309,6 +348,10 @@
       <div class="grid2">
         <button class="secondary" id="copyViewerBtn">Kopioi katsojalinkki</button>
         <button class="secondary" id="newGameIdBtn">Vaihda pelin koodi</button>
+      </div>
+      <div class="grid2">
+        <button class="good" id="newGameBtn">Uusi peli uudella koodilla</button>
+        <button class="danger" id="clearLiveBtn">Nollaa tämä peli</button>
       </div>
       <p class="hint">
         Jaa tämä linkki muille pelaajille. He näkevät pelkän live-tulostaulun omilla puhelimillaan.
@@ -425,6 +468,13 @@
         return;
       }
 
+      if (selectedGameMode() === "new") {
+        switchGameId(generateGameId());
+      } else {
+        const typedGameId = $("gameIdInput") ? $("gameIdInput").value : gameId;
+        if (typedGameId) switchGameId(typedGameId);
+      }
+
       const targetScore = Number($("targetInput").value || 50);
       if (!Number.isInteger(targetScore) || targetScore < 10 || targetScore > 50) {
         setStatus("Voittopistemäärän pitää olla kokonaisluku 10–50.");
@@ -448,7 +498,7 @@
       showGame();
       render();
       prefillCurrentPlayer();
-      setStatus("Peli aloitettu. Tavoite " + targetScore + " pistettä. Ensimmäisenä: " + game.players[0].name + ".");
+      setStatus("Peli aloitettu. Pelikoodi " + gameId + ". Tavoite " + targetScore + " pistettä. Ensimmäisenä: " + game.players[0].name + ".");
     }
 
     function showGame() {
@@ -468,6 +518,7 @@
       $("historyCard").classList.add("hidden");
       if ($("shareCard")) $("shareCard").classList.add("hidden");
       $("scoreboard").innerHTML = "";
+      if ($("gameIdInput")) $("gameIdInput").value = gameId;
     }
 
     function setStatus(text) {
@@ -485,6 +536,32 @@
         .replace(/^-|-$/g, "") || "vappu";
     }
 
+    function generateGameId() {
+      const date = new Date();
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      const random = Math.random().toString(36).slice(2, 6);
+      return "molkky-" + y + m + d + "-" + random;
+    }
+
+    function selectedGameMode() {
+      const checked = document.querySelector('input[name="gameMode"]:checked');
+      return checked ? checked.value : "same";
+    }
+
+    function switchGameId(nextId) {
+      gameId = safeGameId(nextId);
+      localStorage.setItem("molkky-game-id", gameId);
+      if (gameRef) gameRef.off();
+      if (db) {
+        gameRef = db.ref("games/" + gameId);
+        listenToLiveGame();
+      }
+      if ($("gameIdInput")) $("gameIdInput").value = gameId;
+      updateShareLink();
+    }
+
     function initFirebase() {
       try {
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -492,6 +569,7 @@
         gameId = safeGameId(gameId);
         localStorage.setItem("molkky-game-id", gameId);
         gameRef = db.ref("games/" + gameId);
+        if ($("gameIdInput")) $("gameIdInput").value = gameId;
         listenToLiveGame();
         updateShareLink();
       } catch (err) {
@@ -897,16 +975,27 @@
     $("newGameIdBtn").addEventListener("click", () => {
       const next = prompt("Anna pelin koodi, esim. vappu2026", gameId);
       if (!next) return;
-      gameId = safeGameId(next);
-      localStorage.setItem("molkky-game-id", gameId);
-      if (gameRef) gameRef.off();
-      if (db) {
-        gameRef = db.ref("games/" + gameId);
-        listenToLiveGame();
-      }
+      switchGameId(next);
       save();
-      updateShareLink();
       setStatus("Pelikoodi vaihdettu: " + gameId);
+    });
+
+    $("newGameBtn").addEventListener("click", () => {
+      if (!confirm("Luodaanko uusi pelikoodi? Nykyinen peli jää talteen vanhaan katsojalinkkiin.")) return;
+      switchGameId(generateGameId());
+      localStorage.removeItem(STORAGE_KEY);
+      game = { players: [], currentTurn: 0, history: [], startedAt: null, targetScore: 50 };
+      showSetup();
+      setStatus("Uusi pelikoodi luotu: " + gameId + ". Lisää pelaajat ja aloita peli.");
+    });
+
+    $("clearLiveBtn").addEventListener("click", () => {
+      if (!confirm("Nollataanko tämä peli? Tämä tyhjentää myös katsojien live-tulostaulun.")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      if (gameRef) gameRef.remove().catch(() => {});
+      game = { players: [], currentTurn: 0, history: [], startedAt: null, targetScore: 50 };
+      showSetup();
+      setStatus("Peli nollattu. Pelikoodi säilyy: " + gameId);
     });
 
     $("commandInput").addEventListener("keydown", (e) => {
