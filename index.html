@@ -26,7 +26,7 @@
 <body>
 <div class="wrap">
   <header><h1>Mölkky</h1><div class="badge" id="roundBadge">Tulostaulu</div></header>
-  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 21 · no service worker</div>
+  <div class="hint" style="text-align:right;margin-top:-8px;margin-bottom:8px;">Build 22 · active-turn-only</div>
 
   <section class="card hidden" id="viewerCard">
     <label>Live-tulostaulu</label>
@@ -375,32 +375,103 @@ function parseCommand(raw) {
   return { type:"unknown", raw: cleaned };
 }
 
+
+function extractPointsFromInput(raw) {
+  const cleaned = (raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(",", ".")
+    .replace(/\bpistetta\b/g, "")
+    .replace(/\bpistettä\b/g, "")
+    .replace(/\bpisteitä\b/g, "")
+    .replace(/\bpiste\b/g, "")
+    .replace(/\bplus\b/g, "")
+    .replace(/\+/g, " ")
+    .replace(/\s+/g, " ");
+
+  if (!cleaned) return { ok: false, reason: "empty" };
+
+  if (/(^|\s)(undo|andu|ändu|peru|takaisin|takasin)(\s|$)/i.test(cleaned)) {
+    return { ok: true, type: "undo" };
+  }
+
+  if (/(^|\s)(huti|ohi)(\s|$)/i.test(cleaned)) {
+    return { ok: true, type: "score", points: 0 };
+  }
+
+  const numberMatch = cleaned.match(/(?:^|\s)(\d{1,2})(?:\s|$)/);
+  if (numberMatch) {
+    return { ok: true, type: "score", points: Number(numberMatch[1]) };
+  }
+
+  const words = [
+    ["kaksitoista", 12],
+    ["yksitoista", 11],
+    ["kymmenen", 10],
+    ["yhdeksän", 9],
+    ["yhdeksan", 9],
+    ["kahdeksan", 8],
+    ["seitsemän", 7],
+    ["seitseman", 7],
+    ["kuusi", 6],
+    ["viisi", 5],
+    ["neljä", 4],
+    ["nelja", 4],
+    ["kolme", 3],
+    ["kaksi", 2],
+    ["yksi", 1],
+    ["nolla", 0]
+  ];
+
+  const normalized = normalizeName(cleaned);
+  for (const [word, value] of words) {
+    const wordKey = normalizeName(word);
+    const pattern = new RegExp("(^|\\s)" + wordKey + "(\\s|$)", "i");
+    if (pattern.test(normalized)) {
+      return { ok: true, type: "score", points: value };
+    }
+  }
+
+  return { ok: false, reason: cleaned };
+}
+
 function addScoreFromCommand() {
   const input = $("commandInput");
   const raw = input.value;
   input.value = "";
-  const command = parseCommand(raw);
 
-  if (command.type === "empty") { prefillCurrentPlayer(); return; }
-  if (command.type === "undo") return undo();
-  if (command.type === "reset") return resetGame();
-  if (command.type !== "score") {
-    setStatus("❌ En ymmärtänyt komentoa: " + raw);
+  const extracted = extractPointsFromInput(raw);
+
+  if (!extracted.ok && extracted.reason === "empty") {
     prefillCurrentPlayer();
     return;
   }
-  if (!Number.isInteger(command.points) || command.points < 0 || command.points > 12) {
-    setStatus("Pisteiden pitää olla 0–12.");
+
+  if (extracted.ok && extracted.type === "undo") {
+    return undo();
+  }
+
+  const active = currentActivePlayer();
+  if (!active) {
+    setStatus("Peli päättynyt tai aktiivista pelaajaa ei löytynyt.");
+    return;
+  }
+
+  if (!extracted.ok || extracted.type !== "score") {
+    setStatus("❌ En ymmärtänyt tulosta: " + raw + ". Sano esim. 2, kaksi tai huti.");
     prefillCurrentPlayer();
     return;
   }
-  const player = findPlayer(command.name);
-  if (!player) {
-    setStatus("❌ Pelaajaa ei löytynyt: " + command.name);
+
+  const points = extracted.points;
+  if (!Number.isInteger(points) || points < 0 || points > 12) {
+    setStatus("Pisteiden pitää olla 0–12. Syötit: " + points);
     prefillCurrentPlayer();
     return;
   }
-  applyScore(player.name, command.points);
+
+  // Tärkeä muutos: käytetään aina vuorossa olevaa pelaajaa, ei tekstistä pääteltyä nimeä.
+  applyScore(active.name, points);
 }
 
 function applyScore(playerName, points) {
