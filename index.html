@@ -275,7 +275,7 @@
     <section class="card hidden" id="gameCard">
       <label for="commandInput">Kirjaus puheella tai näppäillen</label>
       <input id="commandInput" inputmode="text" autocomplete="off"
-        placeholder='Sano esim. "Niina 10", "Niina huti" tai "undo"' />
+        placeholder='Vuorossa oleva nimi täyttyy tähän automaattisesti' />
       <div class="grid2">
         <button id="addBtn">Lisää kirjaus</button>
         <button class="secondary" id="focusBtn">🎤 Puhu iPhonen mikrofonilla</button>
@@ -288,7 +288,7 @@
         <button class="secondary quick" data-points="4">+4</button>
         <button class="secondary quick" data-points="5">+5</button>
       </div>
-      <div class="status" id="status">Valmis. Kirjaa ensimmäinen heitto.</div>
+      <div class="status" id="status">Valmis. Vuorossa olevan nimi täyttyy kirjauskenttään.</div>
       <div class="smallrow">
         <span id="turnText"></span>
         <span>Täsmälleen tavoite voittaa</span>
@@ -343,6 +343,7 @@
         if (!game.targetScore) game.targetScore = 50;
         showGame();
         render();
+        prefillCurrentPlayer();
         setStatus("Tallennettu peli ladattu.");
         return true;
       } catch {
@@ -394,6 +395,7 @@
       save();
       showGame();
       render();
+      prefillCurrentPlayer();
       setStatus("Peli aloitettu. Tavoite " + targetScore + " pistettä. Ensimmäisenä: " + game.players[0].name + ".");
     }
 
@@ -436,6 +438,17 @@
           return;
         }
       }
+    }
+
+    function prefillCurrentPlayer() {
+      const input = $("commandInput");
+      if (!input) return;
+      const player = currentActivePlayer();
+      if (!player) {
+        input.value = "";
+        return;
+      }
+      input.value = player.name + " ";
     }
 
     function findPlayer(namePart) {
@@ -510,6 +523,22 @@
 
       if (/^(undo|peru|takaisin)$/i.test(cleaned)) return { type: "undo" };
       if (/^(uusi peli|reset|nollaa|tyhjenna|tyhjennä)$/i.test(cleaned)) return { type: "reset" };
+
+      // Jos kentässä on pelkkä pistemäärä, käytetään automaattisesti vuorossa olevaa pelaajaa.
+      const activePlayer = currentActivePlayer();
+      const pointsOnlyNumber = cleaned.match(/^(-?\d{1,2})$/);
+      if (pointsOnlyNumber && activePlayer) {
+        return { type: "score", name: activePlayer.name, points: Number(pointsOnlyNumber[1]) };
+      }
+
+      const pointsOnlyWord = parseFinnishNumber(cleaned);
+      if (pointsOnlyWord !== null && activePlayer) {
+        return { type: "score", name: activePlayer.name, points: pointsOnlyWord };
+      }
+
+      if (/^(huti|ohi)$/i.test(cleaned) && activePlayer) {
+        return { type: "score", name: activePlayer.name, points: 0 };
+      }
 
       const missMatch = cleaned.match(/^(.+?)\s+(huti|ohi|nolla|0)$/i);
       if (missMatch) return { type: "score", name: missMatch[1], points: 0 };
@@ -610,6 +639,7 @@
 
       save();
       render();
+      prefillCurrentPlayer();
       setStatus(message);
       speak(message);
     }
@@ -623,6 +653,7 @@
       game = last.before;
       save();
       render();
+      prefillCurrentPlayer();
       setStatus("Viimeisin kirjaus peruttu.");
     }
 
@@ -706,7 +737,7 @@
     $("resetBtn").addEventListener("click", resetGame);
     $("focusBtn").addEventListener("click", () => {
       $("commandInput").focus();
-      setStatus("Paina iPhonen näppäimistöstä mikrofonia ja sano: Niina 10.");
+      setStatus("Nimi on valmiina. Paina iPhonen mikkiä ja sano vain heittotulos, esim. kaksi tai huti.");
     });
 
     $("commandInput").addEventListener("keydown", (e) => {

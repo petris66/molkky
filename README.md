@@ -44,3 +44,14 @@ Tämä versio ymmärtää myös suomenkieliset numerosanat:
 ## Tavoitepisteet
 
 Aloitusnäkymässä voit valita voittopistemäärän. Normaali peli on 50 pistettä, mutta lyhyessä pelissä voit käyttää esimerkiksi 25, 30, 35 tai 40.
+
+
+## Vuorossa olevan pelaajan esitäyttö
+
+Kun peli alkaa, kirjauskenttään täytetään automaattisesti vuorossa olevan pelaajan nimi. Voit sanoa tai kirjoittaa pelkän tuloksen:
+
+- kaksi
+- 8
+- huti
+
+Kirjauksen jälkeen sovellus siirtyy seuraavaan aktiiviseen pelaajaan ja täyttää tämän nimen kenttään.
