@@ -91,12 +91,7 @@ Kirjaajan näkymässä on lisäksi:
 Nollaus tyhjentää nykyisen pelikoodin Firebase-datan ja katsojien tulostaulun.
 
 
-## Vuoropelaajan esitäytön korjaus
+## Final fix
 
-Kirjauskenttä täyttyy nyt pakotetusti vuorossa olevan pelaajan nimellä:
-- pelin alussa
-- jokaisen kirjauksen jälkeen
-- undon jälkeen
-- pelinäkymään palatessa
-
-Yliheitto kirjautuu myös, kun kentässä on esitäytetty nimi ja käyttäjä sanelee vain tuloksen.
+Korjattu JavaScript-virhe, joka esti Aloita uusi peli -painikkeen toiminnan.
+Korjattu vuorossa olevan pelaajan esitäyttö ja yliheiton näkyminen.
