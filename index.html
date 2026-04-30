@@ -438,7 +438,7 @@
         if (!game.targetScore) game.targetScore = 50;
         showGame();
         render();
-        prefillCurrentPlayer();
+        prefillCurrentPlayer(true);
         setStatus("Tallennettu peli ladattu.");
         return true;
       } catch {
@@ -609,7 +609,7 @@
         }
 
         render();
-        if (!viewerMode) prefillCurrentPlayer();
+        if (!viewerMode) prefillCurrentPlayer(true);
 
         // Älä ylikirjoita juuri tehdyn kirjauksen viestiä, esim. yliheittoilmoitusta.
         const justWroteLocally = !viewerMode && (Date.now() - lastLocalWriteAt < 1800);
@@ -660,8 +660,10 @@
     }
 
     function prefillCurrentPlayer(force = false) {
+      if (viewerMode) return;
       const input = $("commandInput");
       if (!input) return;
+
       const player = currentActivePlayer();
       if (!player) {
         input.value = "";
@@ -669,11 +671,12 @@
       }
 
       const current = input.value.trim();
-      const playerNames = game.players.map(p => normalizeName(p.name));
-      const currentIsPlayerName = playerNames.includes(normalizeName(current));
-      const currentLooksEmpty = current === "";
+      const playerKeys = game.players.map(p => normalizeName(p.name));
 
-      if (force || currentLooksEmpty || currentIsPlayerName) {
+      // Täytä nimi, jos kenttä on tyhjä, siinä on vain jonkun pelaajan nimi,
+      // tai jos pakotetaan kirjauksen/renderöinnin jälkeen.
+      const onlyPlayerName = playerKeys.includes(normalizeName(current));
+      if (force || current === "" || onlyPlayerName) {
         input.value = player.name + " ";
       }
     }
@@ -820,7 +823,11 @@
 
     function applyScore(playerName, points) {
       const player = findPlayer(playerName);
-      if (!player) return;
+      if (!player) {
+        setStatus("❌ Pelaajaa ei löytynyt.");
+        prefillCurrentPlayer(true);
+        return;
+      }
 
       if (player.out) {
         setStatus(player.name + " on jo ulkona.");
@@ -939,6 +946,10 @@
       $("history").innerHTML = [...game.history].reverse().slice(0, 30).map(h =>
         `<li>${escapeHtml(h.message)}</li>`
       ).join("");
+      if (!viewerMode && game.players && game.players.length) {
+        prefillCurrentPlayer(true); // render-end
+      }
+
     }
 
     function speak(text) {

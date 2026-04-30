@@ -95,3 +95,7 @@ Nollaus tyhjentää nykyisen pelikoodin Firebase-datan ja katsojien tulostaulun.
 
 Korjattu JavaScript-virhe, joka esti Aloita uusi peli -painikkeen toiminnan.
 Korjattu vuorossa olevan pelaajan esitäyttö ja yliheiton näkyminen.
+
+## Render-prefill fix
+
+Kirjauskenttä täytetään nyt renderöinnin lopussa aina vuorossa olevan pelaajan nimellä kirjaajanäkymässä.
