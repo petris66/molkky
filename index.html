@@ -207,7 +207,7 @@ function initFirebase() {
   try {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     db = firebase.database();
-    switchGameId(gameId, false);
+    switchGameId(gameId, true);
   } catch (err) {
     setStatus("Firebase ei käynnistynyt. Paikallinen peli jatkuu.");
   }
