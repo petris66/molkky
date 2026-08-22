@@ -662,12 +662,51 @@ function speak(text) {
   } catch {}
 }
 
+
+let recognition = null;
+
+function startVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    setStatus("Puheentunnistus ei ole käytettävissä tässä selaimessa.");
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "fi-FI";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    setStatus("🎤 Kuuntelen...");
+  };
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    $("commandInput").value = text;
+    setStatus("Kuulin: " + text);
+  };
+
+  recognition.onerror = (event) => {
+    setStatus("Puhevirhe: " + event.error);
+  };
+
+  recognition.onend = () => {
+    if ($("commandInput").value) {
+      setStatus("Puhe valmis. Paina Lisää kirjaus.");
+    }
+  };
+
+  recognition.start();
+}
+
 $("startBtn").addEventListener("click", startGame);
 $("loadBtn").addEventListener("click", () => { if (!load()) alert("Tallennettua peliä ei löytynyt."); });
 $("addBtn").addEventListener("click", addScoreFromCommand);
 $("undoBtn").addEventListener("click", undo);
 $("resetBtn").addEventListener("click", resetGame);
-$("focusBtn").addEventListener("click", () => { $("commandInput").focus(); setStatus("Nimi on valmiina. Sano vain tulos, esim. kaksi tai huti."); });
+$("focusBtn").addEventListener("click", startVoiceInput);
 $("commandInput").addEventListener("keydown", e => { if (e.key === "Enter") addScoreFromCommand(); });
 document.querySelectorAll(".quick").forEach(btn => btn.addEventListener("click", () => quickScore(btn.dataset.points)));
 
