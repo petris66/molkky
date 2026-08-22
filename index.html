@@ -685,7 +685,11 @@ function startVoiceInput() {
   recognition.onresult = (event) => {
     const text = event.results[0][0].transcript;
     $("commandInput").value = text;
-    setStatus("Kuulin: " + text);
+    setStatus("Kuulin: " + text + ". Kirjataan...");
+
+    setTimeout(() => {
+      addScoreFromCommand();
+    }, 300);
   };
 
   recognition.onerror = (event) => {
